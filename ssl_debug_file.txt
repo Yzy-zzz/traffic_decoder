@@ -1,0 +1,18 @@
+tls12_prf: secret[48]:
+| 33 e5 7f ee e8 31 9c 03 4d 9d 71 47 08 31 69 22 |3....1..M.qG.1i"|
+| d5 22 c5 bb 43 be e3 0c 50 ac 10 5e 58 03 2d 9f |."..C...P..^X.-.|
+| cc 0f 28 ac e7 3a 91 a4 67 18 6d 88 e6 44 ec ac |..(..:..g.m..D..|
+tls12_prf: seed[77]:
+| 6b 65 79 20 65 78 70 61 6e 73 69 6f 6e ba 71 9e |key expansion.q.|
+| 7f a9 af 1e da aa 19 97 e6 d1 c3 ac 0c 74 52 b2 |.............tR.|
+| 12 45 2b 38 2f db f8 30 c0 36 27 b3 fb 10 e8 a2 |.E+8/..0.6'.....|
+| c9 74 cc a2 e2 3d 8d b5 96 0a 97 d4 1b e5 09 d3 |.t...=..........|
+| dd 9e 63 90 d2 a9 c0 1a 71 ef f8 e4 f1          |..c.....q....   |
+hash out[104]:
+| 5f 5c 73 d3 ea 8a d7 c3 28 13 e3 51 f0 cf c7 ae |_\s.....(..Q....|
+| 12 a2 bb dd e9 32 f1 f7 f5 76 bf 40 94 5c 5e 6b |.....2...v.@.\^k|
+| 3e 98 e4 fe 82 2f b6 cb 13 cf f0 a3 87 3d cf 63 |>..../.......=.c|
+| 96 14 17 ff fb be 33 cf 69 f9 f1 5c b2 fd d9 cb |......3.i..\....|
+| 57 e9 ce 3d 8d 3a 44 e3 45 e8 d8 ec 59 e8 79 ac |W..=.:D.E...Y.y.|
+| 7f 36 d6 36 54 ed 68 ba a4 e3 1d 57 51 c4 a5 72 |.6.6T.h....WQ..r|
+| 33 bb e5 97 ba e5 51 4f                         |3.....QO        |
