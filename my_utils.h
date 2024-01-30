@@ -3,21 +3,7 @@
 #include <string.h>
 #include <gcrypt.h>
 #include <ctype.h>
-
-
-#define DIGEST_MAX_SIZE 48
-#define SSL_HMAC gcry_md_hd_t
-#define MIN(a, b) ((a) < (b) ? (a) : (b))
-
-typedef int gint;
-typedef unsigned char guchar;
-typedef u_int guint;
-
-typedef struct _StringInfo {
-    u_char  *data;      /* Backing storage which may be larger than data_len */
-    int    data_len;  /* Length of the meaningful part of data */
-} StringInfo;
-
+#include "my_typedef.h"
 
 int hexCharToInt(char c) {
     if (c >= '0' && c <= '9') return c - '0';
@@ -130,3 +116,88 @@ ssl_print_data(const char* name, const guchar* data, size_t len)
     }
 
 }
+void ssl_data_set(StringInfo* str, const guchar* data, guint len)
+{
+    // DISSECTOR_ASSERT(data);
+    memcpy(str->data, data, len);
+    str->data_len = len;
+}
+const SslCipherSuite *ssl_find_cipher(int num)
+{
+    const SslCipherSuite *c;
+    for(c=cipher_suites;c->number!=-1;c++){
+        if(c->number==num){
+            return c;
+        }
+    }
+
+    return NULL;
+}
+
+static void ssl_set_cipher(SslDecryptSession *ssl, guint16 cipher)
+{
+    /* store selected cipher suite for decryption */
+    // ssl->session.cipher = cipher;
+
+    const SslCipherSuite *cs = ssl_find_cipher(cipher);
+    if (!cs) {
+        ssl->cipher_suite = NULL;
+        ssl->state &= ~SSL_CIPHER;
+        // ssl_debug_printf("%s can't find cipher suite 0x%04X\n", G_STRFUNC, cipher);
+    // } else if (ssl->session.version == SSLV3_VERSION && !(cs->dig == DIG_MD5 || cs->dig == DIG_SHA)) {
+        /* A malicious packet capture contains a SSL 3.0 session using a TLS 1.2
+         * cipher suite that uses for example MACAlgorithm SHA256. Reject that
+         * to avoid a potential buffer overflow in ssl3_check_mac. */
+        ssl->cipher_suite = NULL;
+        ssl->state &= ~SSL_CIPHER;
+        // ssl_debug_printf("%s invalid SSL 3.0 cipher suite 0x%04X\n", G_STRFUNC, cipher);
+    } else {
+        /* Cipher found, save this for the delayed decoder init */
+        ssl->cipher_suite = cs;
+        ssl->state |= SSL_CIPHER;
+        // ssl_debug_printf("%s found CIPHER 0x%04X %s -> state 0x%02X\n", G_STRFUNC, cipher,
+        //                  val_to_str_ext_const(cipher, &ssl_31_ciphersuite_ext, "unknown"),
+        //                  ssl->state);
+    }
+}
+
+
+
+// static SslDecoder*
+// ssl_create_decoder(const SslCipherSuite *cipher_suite, gint cipher_algo,
+//         gint compression, guint8 *mk, guint8 *sk, guint8 *iv, guint iv_length)
+// {
+//     SslDecoder *dec;
+//     ssl_cipher_mode_t mode = cipher_suite->mode;
+
+//     dec = wmem_new0(wmem_file_scope(), SslDecoder);
+//     /* init mac buffer: mac storage is embedded into decoder struct to save a
+//      memory allocation and waste samo more memory*/
+//     dec->cipher_suite=cipher_suite;
+//     dec->compression = compression;
+//     if ((mode == MODE_STREAM && mk != NULL) || mode == MODE_CBC) {
+//         // AEAD ciphers use no MAC key, but stream and block ciphers do. Note
+//         // the special case for NULL ciphers, even if there is insufficieny
+//         // keying material (including MAC key), we will can still create
+//         // decoders since "decryption" is easy for such ciphers.
+//         dec->mac_key.data = dec->_mac_key_or_write_iv;
+//         ssl_data_set(&dec->mac_key, mk, ssl_cipher_suite_dig(cipher_suite)->len);
+//     } else if (mode == MODE_GCM || mode == MODE_CCM || mode == MODE_CCM_8 || mode == MODE_POLY1305) {
+//         // Input for the nonce, to be used with AEAD ciphers.
+//         DISSECTOR_ASSERT(iv_length <= sizeof(dec->_mac_key_or_write_iv));
+//         dec->write_iv.data = dec->_mac_key_or_write_iv;
+//         ssl_data_set(&dec->write_iv, iv, iv_length);
+//     }
+//     dec->seq = 0;
+//     dec->decomp = ssl_create_decompressor(compression);
+//     wmem_register_callback(wmem_file_scope(), ssl_decoder_destroy_cb, dec);
+
+//     if (ssl_cipher_init(&dec->evp,cipher_algo,sk,iv,cipher_suite->mode) < 0) {
+//         ssl_debug_printf("%s: can't create cipher id:%d mode:%d\n", G_STRFUNC,
+//             cipher_algo, cipher_suite->mode);
+//         return NULL;
+//     }
+
+//     ssl_debug_printf("decoder initialized (digest len %d)\n", ssl_cipher_suite_dig(cipher_suite)->len);
+//     return dec;
+// }
