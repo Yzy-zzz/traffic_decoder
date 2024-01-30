@@ -109,5 +109,6 @@ int main() {
 
     return 0;
 }
+//sudo apt-get install libgcrypt20-dev
 //g++ -o test test.cpp -lgcrypt
 //md=8
