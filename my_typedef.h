@@ -1,6 +1,8 @@
 
 
 #define DIGEST_MAX_SIZE 48
+#define MAX_KEY_SIZE 32
+
 #define SSL_HMAC gcry_md_hd_t
 #define SSL_CIPHER              (1<<2)
 #define MIN(a, b) ((a) < (b) ? (a) : (b))
@@ -20,6 +22,11 @@ typedef struct _StringInfo {
     u_char  *data;      /* Backing storage which may be larger than data_len */
     int    data_len;  /* Length of the meaningful part of data */
 } StringInfo;
+
+typedef struct {
+    const char *name;
+    guint len;
+} SslDigestAlgo;
 
 typedef enum {
     MODE_STREAM,    /* GenericStreamCipher */
@@ -56,28 +63,14 @@ typedef struct _SslDecoder {
     StringInfo app_traffic_secret;  /**< TLS 1.3 application traffic secret (if applicable), wmem file scope. */
 } SslDecoder;
 
+typedef struct _My_Session{
+    const SslCipherSuite *cipher_suite;
+    guint16 version;
+} My_Session;
 
-
-#define SSL_VER_UNKNOWN         0
-#define SSLV2_VERSION           0x0002 /* not in record layer, SSL_CLIENT_SERVER from
-                                          http://www-archive.mozilla.org/projects/security/pki/nss/ssl/draft02.html */
-#define SSLV3_VERSION          0x300
-#define TLSV1_VERSION          0x301
-#define TLCPV1_VERSION         0x101
-#define TLSV1DOT1_VERSION      0x302
-#define TLSV1DOT2_VERSION      0x303
-#define TLSV1DOT3_VERSION      0x304
-#define DTLSV1DOT0_VERSION     0xfeff
-#define DTLSV1DOT0_OPENSSL_VERSION 0x100
-#define DTLSV1DOT2_VERSION     0xfefd
-#define DTLSV1DOT3_VERSION     0xfefc
-
-
-
-#define SSL_MASTER_SECRET_LENGTH        48
-
+/* This holds state information for a SSL conversation */
 typedef struct _SslDecryptSession {
-    guchar _master_secret[SSL_MASTER_SECRET_LENGTH];
+    // guchar _master_secret[SSL_MASTER_SECRET_LENGTH];
     guchar _session_id[256];
     guchar _client_random[32];
     guchar _server_random[32];
@@ -109,6 +102,33 @@ typedef struct _SslDecryptSession {
     gboolean   has_early_data;
 
 } SslDecryptSession;
+
+
+
+static const SslDigestAlgo digests[]={
+    {"MD5",     16},
+    {"SHA1",    20},
+    {"SHA256",  32},
+    {"SHA384",  48},
+    {"SM3",     32},
+    {"Not Applicable",  0},
+};
+
+#define SSL_VER_UNKNOWN         0
+#define SSLV2_VERSION           0x0002 /* not in record layer, SSL_CLIENT_SERVER from
+                                          http://www-archive.mozilla.org/projects/security/pki/nss/ssl/draft02.html */
+#define SSLV3_VERSION          0x300
+#define TLSV1_VERSION          0x301
+#define TLCPV1_VERSION         0x101
+#define TLSV1DOT1_VERSION      0x302
+#define TLSV1DOT2_VERSION      0x303
+#define TLSV1DOT3_VERSION      0x304
+#define DTLSV1DOT0_VERSION     0xfeff
+#define DTLSV1DOT0_OPENSSL_VERSION 0x100
+#define DTLSV1DOT2_VERSION     0xfefd
+#define DTLSV1DOT3_VERSION     0xfefc
+
+#define SSL_MASTER_SECRET_LENGTH        48
 
 
 
@@ -167,6 +187,59 @@ typedef struct _SslDecryptSession {
 #define DIG_SM3         0x44
 #define DIG_NA          0x45 /* Not Applicable */
 
+
+
+static guint ssl_get_cipher_export_keymat_size(int cipher_suite_num)
+{
+    switch (cipher_suite_num) {
+    /* See RFC 6101 (SSL 3.0), Table 2, column Key Material. */
+    case 0x0003:    /* TLS_RSA_EXPORT_WITH_RC4_40_MD5 */
+    case 0x0006:    /* TLS_RSA_EXPORT_WITH_RC2_CBC_40_MD5 */
+    case 0x0008:    /* TLS_RSA_EXPORT_WITH_DES40_CBC_SHA */
+    case 0x000B:    /* TLS_DH_DSS_EXPORT_WITH_DES40_CBC_SHA */
+    case 0x000E:    /* TLS_DH_RSA_EXPORT_WITH_DES40_CBC_SHA */
+    case 0x0011:    /* TLS_DHE_DSS_EXPORT_WITH_DES40_CBC_SHA */
+    case 0x0014:    /* TLS_DHE_RSA_EXPORT_WITH_DES40_CBC_SHA */
+    case 0x0017:    /* TLS_DH_anon_EXPORT_WITH_RC4_40_MD5 */
+    case 0x0019:    /* TLS_DH_anon_EXPORT_WITH_DES40_CBC_SHA */
+        return 5;
+
+    /* not defined in below draft, but "implemented by several vendors",
+     * https://www.ietf.org/mail-archive/web/tls/current/msg00036.html */
+    case 0x0060:    /* TLS_RSA_EXPORT1024_WITH_RC4_56_MD5 */
+    case 0x0061:    /* TLS_RSA_EXPORT1024_WITH_RC2_CBC_56_MD5 */
+        return 7;
+
+    /* Note: the draft states that DES_CBC needs 8 bytes, but Wireshark always
+     * used 7. Until a pcap proves 8, let's use the old value. Link:
+     * https://tools.ietf.org/html/draft-ietf-tls-56-bit-ciphersuites-01 */
+    case 0x0062:    /* TLS_RSA_EXPORT1024_WITH_DES_CBC_SHA */
+    case 0x0063:    /* TLS_DHE_DSS_EXPORT1024_WITH_DES_CBC_SHA */
+    case 0x0064:    /* TLS_RSA_EXPORT1024_WITH_RC4_56_SHA */
+    case 0x0065:    /* TLS_DHE_DSS_EXPORT1024_WITH_RC4_56_SHA */
+        return 7;
+
+    default:
+        return 0;
+    }
+}
+
+static const char *ciphers[]={
+    "DES",
+    "3DES",
+    "ARCFOUR", /* libgcrypt does not support rc4, but this should be 100% compatible*/
+    "RFC2268_128", /* libgcrypt name for RC2 with a 128-bit key */
+    "IDEA",
+    "AES",
+    "AES256",
+    "CAMELLIA128",
+    "CAMELLIA256",
+    "SEED",
+    "CHACHA20", /* since Libgcrypt 1.7.0 */
+    "SM1",
+    "SM4",
+    "*UNKNOWN*"
+};
 
 static const SslCipherSuite cipher_suites[]={
     {0x0001,KEX_RSA,            ENC_NULL,       DIG_MD5,    MODE_STREAM},   /* TLS_RSA_WITH_NULL_MD5 */
