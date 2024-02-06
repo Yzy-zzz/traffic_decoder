@@ -13,16 +13,12 @@ int main() {
     StringInfo *out = new StringInfo;
     const char *usage = "key expansion";
 
+    // number是协商后确定的套件
     // 根据number确定套件...
     const SslCipherSuite *cs = ssl_find_cipher(0xC02F);
 
-    // My_Session session;
-    
-    
-    // out_len是hash后面的输出大小
 
     // 需要转换为16进制
-
     rnd1->data = convertHexStringToUCharArray(
         "10e8a2c974cca2e23d8db5960a97d41be509d3dd9e6390d2a9c01a71eff8e4f1");
     secret->data = convertHexStringToUCharArray(
@@ -41,8 +37,7 @@ int main() {
     // generate_material
     generate_key_material(cs, secret, usage, rnd2, rnd1, out);
 
-
-    
+    //输出在 同目录下 ssl_dubug_file.txt
     return 0;
 }
 

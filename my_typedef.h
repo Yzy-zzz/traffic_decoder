@@ -1,9 +1,14 @@
-
+#include <sys/types.h> // 尝试这个，如果不行，尝试下面的
+#include <stdint.h>
+#include <gcrypt.h>
 
 #define DIGEST_MAX_SIZE 48
 #define MAX_KEY_SIZE 32
 
 #define SSL_HMAC gcry_md_hd_t
+#define SSL_SHA_CTX gcry_md_hd_t
+#define SSL_MD5_CTX gcry_md_hd_t
+
 #define SSL_CIPHER              (1<<2)
 #define MIN(a, b) ((a) < (b) ? (a) : (b))
 #define SSL_CIPHER_CTX gcry_cipher_hd_t
@@ -11,7 +16,7 @@
 typedef int gint;
 typedef unsigned char guchar;
 typedef unsigned char guint8;
-typedef u_int guint;
+typedef unsigned int guint;
 typedef u_int64_t guint64;
 typedef u_int32_t guint32;
 typedef u_int16_t guint16;
@@ -19,7 +24,7 @@ typedef bool gboolean;
 
 
 typedef struct _StringInfo {
-    u_char  *data;      /* Backing storage which may be larger than data_len */
+    unsigned char  *data;      /* Backing storage which may be larger than data_len */
     int    data_len;  /* Length of the meaningful part of data */
 } StringInfo;
 
