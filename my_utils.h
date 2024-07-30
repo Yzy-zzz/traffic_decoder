@@ -17,6 +17,8 @@ int hexCharToInt(char c) {
 // 16进制转换为字符串
 unsigned char *convertHexStringToUCharArray(const char *hexStr) {
     size_t len = strlen(hexStr);
+    //输出len的值
+    printf("convertHexStringToUCharArray: len %d\n", len);
     size_t arraySize = len / 2;
     unsigned char *bytes = (unsigned char *)malloc(arraySize);
 
@@ -24,7 +26,7 @@ unsigned char *convertHexStringToUCharArray(const char *hexStr) {
         bytes[i / 2] =
             (hexCharToInt(hexStr[i]) << 4) | hexCharToInt(hexStr[i + 1]);
     }
-
+    //输出bytes的值
     return bytes;
 }
 
@@ -204,7 +206,7 @@ ssl_md_init(SSL_MD* md, gint algo)
     if (err != 0) {
         err_str = gcry_strerror(err);
         err_src = gcry_strsource(err);
-        // ssl_debug_printf("ssl_md_init(): gcry_md_open failed %s/%s", err_str, err_src);
+        printf("ssl_md_init(): gcry_md_open failed %s/%s", err_str, err_src);
         return -1;
     }
     return 0;
@@ -643,9 +645,20 @@ static gint tls12_handshake_hash(StringInfo* handshake_data, gint md, StringInfo
     guint8 tmp[48];
     guint  len;
 
+    //逐个输出handshake_data的值，用handshake_data->data_len做循环次数
+    // for (int i = 0; i < handshake_data->data_len; i++)
+    // {
+    //     printf("tls12_handshake_hash: handshake_data[%d] %c\n", i, handshake_data->data[i]);
+    // }
+
+
     ssl_md_init(&mc, md);
+    printf("tls12_handshake_hash: ssl_md_update\n");
     ssl_md_update(&mc, handshake_data->data, handshake_data->data_len);
+    printf("tls12_handshake_hash: ssl_md_final\n");
     ssl_md_final(&mc, tmp, &len);
+    //输出len
+    printf("tls12_handshake_hash: len %d\n", len);
     ssl_md_cleanup(&mc);
 
     if (ssl_data_alloc(out, len) < 0)
