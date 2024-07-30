@@ -193,6 +193,49 @@ static int tls_hash(StringInfo *secret, StringInfo *seed, int md,
     ssl_print_data("hash out", out->data, out_len);
     return false;
 }
+
+
+static inline gint
+ssl_md_init(SSL_MD* md, gint algo)
+{
+    gcry_error_t  err;
+    const char   *err_str, *err_src;
+    err = gcry_md_open(md,algo, 0);
+    if (err != 0) {
+        err_str = gcry_strerror(err);
+        err_src = gcry_strsource(err);
+        // ssl_debug_printf("ssl_md_init(): gcry_md_open failed %s/%s", err_str, err_src);
+        return -1;
+    }
+    return 0;
+}
+static inline void
+ssl_md_update(SSL_MD* md, guchar* data, gint len)
+{
+    gcry_md_write(*(md), data, len);
+}
+static inline void
+ssl_md_final(SSL_MD* md, guchar* data, guint* datalen)
+{
+    gint algo;
+    gint len;
+    algo = gcry_md_get_algo (*(md));
+    len = gcry_md_get_algo_dlen (algo);
+    memcpy(data, gcry_md_read(*(md),  algo), len);
+    *datalen = len;
+}
+static inline void
+ssl_md_cleanup(SSL_MD* md)
+{
+    gcry_md_close(*(md));
+}
+
+static inline void
+ssl_md_reset(SSL_MD* md)
+{
+    gcry_md_reset(*md);
+}
+
 static inline void
 ssl_sha_init(SSL_SHA_CTX* md)
 {
@@ -590,4 +633,23 @@ int generate_key_material(const SslCipherSuite *cipher_suite,
     }
 
     return 1;
+}
+
+
+
+static gint tls12_handshake_hash(StringInfo* handshake_data, gint md, StringInfo* out)
+{
+    SSL_MD  mc;
+    guint8 tmp[48];
+    guint  len;
+
+    ssl_md_init(&mc, md);
+    ssl_md_update(&mc, handshake_data->data, handshake_data->data_len);
+    ssl_md_final(&mc, tmp, &len);
+    ssl_md_cleanup(&mc);
+
+    if (ssl_data_alloc(out, len) < 0)
+        return -1;
+    memcpy(out->data, tmp, len);
+    return 0;
 }

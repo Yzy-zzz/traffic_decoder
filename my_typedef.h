@@ -8,6 +8,7 @@
 #define SSL_HMAC gcry_md_hd_t
 #define SSL_SHA_CTX gcry_md_hd_t
 #define SSL_MD5_CTX gcry_md_hd_t
+#define SSL_MD gcry_md_hd_t
 
 #define SSL_CIPHER              (1<<2)
 #define MIN(a, b) ((a) < (b) ? (a) : (b))
