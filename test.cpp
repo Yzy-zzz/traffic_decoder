@@ -8,14 +8,13 @@ int main() {
     StringInfo *rnd1 = new StringInfo;
     StringInfo *rnd2 = new StringInfo;
     StringInfo *secret = new StringInfo;
-    StringInfo *out = new StringInfo;
+    StringInfo *master_secret = new StringInfo;
     StringInfo *hand_shake_data = new StringInfo;
+    StringInfo *out = new StringInfo;
+
 
     const char *usage = "key expansion";
-
     //输出usage
-    printf("usage %s\n", usage);
-
     // number是协商后确定的套件
     // 根据number确定套件...
     const SslCipherSuite *cs = ssl_find_cipher(0xC02F);
@@ -49,19 +48,23 @@ int main() {
     //
     // generate_material
 
-    // generate_key_material(cs, secret, usage, rnd1, rnd2, out);
+    
 
     StringInfo *hashdata = new StringInfo;
 
 
     gint ret = tls12_handshake_hash(hand_shake_data,GCRY_MD_SHA256,hashdata);
 
-    printf("ret %d\n", ret);
     //输出hashdata
     ssl_print_data("hashdata", hashdata->data, hashdata->data_len);
 
-    tls12_prf(GCRY_MD_SHA256,secret, "extended master secret", hashdata, NULL, out,48);
+    //根据handshake的hashdata生成master_secret
+    tls12_prf(GCRY_MD_SHA256,secret, "extended master secret", hashdata, NULL, master_secret,48);
     //输出在 同目录下 ssl_dubug_file.txt
+
+    generate_key_material(cs, master_secret, usage, rnd1, rnd2, out);
+
+
     return 0;
 }
 

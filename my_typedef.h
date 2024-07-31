@@ -4,6 +4,8 @@
 
 #define DIGEST_MAX_SIZE 48
 #define MAX_KEY_SIZE 32
+#define IMPLICIT_NONCE_LEN  4
+#define EXPLICIT_NONCE_LEN  8
 
 #define SSL_HMAC gcry_md_hd_t
 #define SSL_SHA_CTX gcry_md_hd_t
@@ -56,6 +58,13 @@ typedef struct _SslCipherSuite {
     ssl_cipher_mode_t mode;
 } SslCipherSuite;
 
+typedef struct _SslDecompress {
+    gint compression;
+#ifdef HAVE_ZLIB
+    z_stream istream;
+#endif
+} SslDecompress;
+
 typedef struct _SslDecoder {
     const SslCipherSuite *cipher_suite;
     gint compression;
@@ -63,6 +72,7 @@ typedef struct _SslDecoder {
     StringInfo mac_key; /* for block and stream ciphers */
     StringInfo write_iv; /* for AEAD ciphers (at least GCM, CCM) */
     SSL_CIPHER_CTX evp;
+    SslDecompress *decomp;
     guint64 seq;    /**< Implicit (TLS) or explicit (DTLS) record sequence number. */
     guint16 epoch;
     SslFlow *flow;
@@ -119,6 +129,15 @@ static const SslDigestAlgo digests[]={
     {"SM3",     32},
     {"Not Applicable",  0},
 };
+
+typedef enum {
+    SSL_ID_CHG_CIPHER_SPEC         = 0x14,
+    SSL_ID_ALERT                   = 0x15,
+    SSL_ID_HANDSHAKE               = 0x16,
+    SSL_ID_APP_DATA                = 0x17,
+    SSL_ID_HEARTBEAT               = 0x18,
+    SSL_ID_TLS12_CID               = 0x19
+} ContentType;
 
 #define SSL_VER_UNKNOWN         0
 #define SSLV2_VERSION           0x0002 /* not in record layer, SSL_CLIENT_SERVER from
