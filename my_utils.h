@@ -1034,7 +1034,7 @@ tls_decrypt_aead_record(SslDecoder *decoder,
     return 1;
 }
 
-static gint tls12_handshake_hash(StringInfo* handshake_data, gint md, StringInfo* out)
+static gint tls12_handshake_hash(StringInfo* handshake_data, int md, StringInfo* out)
 {
     SSL_MD  mc;
     guint8 tmp[48];

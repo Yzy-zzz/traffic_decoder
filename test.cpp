@@ -5,6 +5,7 @@
 int main() {
 
     StringInfo label_seed;
+    //c语言中
     StringInfo *rnd1 = new StringInfo;
     StringInfo *rnd2 = new StringInfo;
     StringInfo *secret = new StringInfo;
@@ -70,6 +71,6 @@ int main() {
 
 
 // sudo apt-get install libgcrypt20-dev
-// g++ -o test test.cpp -lgcrypt
+// gcc -o test test.cpp -lgcrypt
 // md=8
 // git push -u origin main
